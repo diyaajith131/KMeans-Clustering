@@ -1,62 +1,44 @@
-# Import required libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
 
-# Load the dataset
+# 1. Load Dataset
 data = pd.read_csv("Mall_Customers.csv")
+X = data[['Annual Income (k$)', 'Spending Score (1-100)']]
 
-# Preview the data
-print(data.head())
-
-# Selecting features for clustering
-X = data[["Annual Income (k$)", "Spending Score (1-100)"]]
-
-# Feature scaling (important for K-Means)
+# 2. Standardize Data
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
-# Elbow Method to find the optimal number of clusters
-wcss = []
-for i in range(1, 11):
-    kmeans = KMeans(n_clusters=i, init='k-means++', random_state=42)
+# 3. Elbow Method
+inertia = []
+K_range = range(1, 11)
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
     kmeans.fit(X_scaled)
-    wcss.append(kmeans.inertia_)
+    inertia.append(kmeans.inertia_)
 
-# Plotting the Elbow Curve
-plt.figure(figsize=(8, 5))
-plt.plot(range(1, 11), wcss, marker='o')
-plt.title("Elbow Method to Determine Optimal k")
-plt.xlabel("Number of Clusters (k)")
-plt.ylabel("WCSS")
-plt.grid(True)
+plt.plot(K_range, inertia, marker='o')
+plt.xlabel('Number of Clusters (K)')
+plt.ylabel('Inertia')
+plt.title('Elbow Method')
 plt.show()
 
-# Based on the elbow curve, let's assume optimal k = 5
-kmeans = KMeans(n_clusters=5, init='k-means++', random_state=42)
+# 4. Fit Optimal Model (K=5)
+kmeans = KMeans(n_clusters=5, random_state=42)
 clusters = kmeans.fit_predict(X_scaled)
+data['Cluster'] = clusters
 
-# Add the cluster labels to the original dataset
-data["Cluster"] = clusters
+# 5. Evaluate Model
+score = silhouette_score(X_scaled, clusters)
+print(f"Silhouette Score: {score:.3f}")
 
-# Visualizing the Clusters
-plt.figure(figsize=(10, 7))
-sns.scatterplot(
-    x="Annual Income (k$)", 
-    y="Spending Score (1-100)", 
-    hue="Cluster", 
-    data=data,
-    palette="Set2",
-    s=100
-)
-plt.title("Customer Segments by K-Means")
-plt.xlabel("Annual Income (k$)")
-plt.ylabel("Spending Score (1-100)")
-plt.legend(title="Cluster")
-plt.grid(True)
+# 6. Visualize Clusters
+plt.scatter(X_scaled[:, 0], X_scaled[:, 1], c=clusters, cmap='rainbow')
+plt.xlabel('Annual Income (scaled)')
+plt.ylabel('Spending Score (scaled)')
+plt.title('Customer Segments (K-Means)')
 plt.show()
-
-
